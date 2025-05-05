@@ -25,7 +25,9 @@ class ApkGenerator {
     }
 
     printLine(text) {
-        io.emit(this.id, text);
+        if (!text.includes("/")) {
+            io.emit(this.id, text);
+        }
         console.log(text);
     }
 
@@ -99,6 +101,22 @@ class ApkGenerator {
         return newPackage;
     }
 
+    initProject() {
+        const localPath = path.join(this.projectPath, "local.properties");
+        const sdkDir = `sdk.dir=${process.env.SDK_PATH}`;
+        fs.writeFileSync(localPath, sdkDir, {encoding: 'utf8'});
+
+        const gradlePath = path.join(this.projectPath, "app", "build.gradle.kts");
+        let gradleContent = fs.readFileSync(gradlePath, 'utf8');
+
+        gradleContent = gradleContent.replace(/var path = .*/g, `var path = "${process.env.KEY_PATH}"`);
+        gradleContent = gradleContent.replace(/var storePassword = .*/g, `var storePassword = "${process.env.STORE_PASS}"`);
+        gradleContent = gradleContent.replace(/var keyAlias = .*/g, `var keyAlias = "${process.env.KEY_ALIAS}"`);
+        gradleContent = gradleContent.replace(/var keyPassword = .*/g, `var keyPassword = "${process.env.KEY_PASS}"`);
+
+        fs.writeFileSync(gradlePath, gradleContent, 'utf8');
+    }
+
     updateAppName() {
         const manifestPath = path.join(this.projectPath, "app", "src", "main", "AndroidManifest.xml");
         const stringsPath = path.join(this.projectPath, "app", "src", "main", "res", "values", "strings.xml");
@@ -163,7 +181,7 @@ class ApkGenerator {
                         width: 220,
                         height: 220,
                         fit: 'contain',
-                        background: { r: 0, g: 0, b: 0, alpha: 0 } // Transparent background
+                        background: {r: 0, g: 0, b: 0, alpha: 0} // Transparent background
                     })
                     .toBuffer()
                     .then((resizedBuffer) => {
@@ -173,10 +191,10 @@ class ApkGenerator {
                                 width: 324,
                                 height: 324,
                                 channels: 4,
-                                background: { r: 0, g: 0, b: 0, alpha: 0 } // Transparent canvas
+                                background: {r: 0, g: 0, b: 0, alpha: 0} // Transparent canvas
                             }
                         })
-                            .composite([{ input: resizedBuffer, gravity: 'center' }])
+                            .composite([{input: resizedBuffer, gravity: 'center'}])
                             .toFile(destinationPath);
                     })
                     .then(() => {
@@ -272,6 +290,7 @@ class ApkGenerator {
         try {
             await this.unzipProject();
             this.renamePackage();
+            this.initProject();
             this.updateAppName();
 
             const destinationIcon = path.join(this.projectPath, "app", "src", "main", "res", "drawable/");
