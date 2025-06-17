@@ -4,7 +4,7 @@ const unzipper = require("unzipper");
 const {spawn} = require("child_process");
 const sharp = require("sharp");
 const {add} = require("node-7z");
-const { path7za } = require('7zip-bin');
+const {path7za} = require('7zip-bin');
 
 class ApkGenerator {
     constructor(appName, id) {
@@ -272,10 +272,10 @@ class ApkGenerator {
 
     buildApk() {
         return new Promise((resolve, reject) => {
-            this.printLine("⚙️ Building APK...");
+            this.printLine("⚙️ Cleaning & building APK...");
             const gradleCommand = process.platform === "win32" ? "gradlew.bat" : "./gradlew";
 
-            const buildProcess = spawn(gradleCommand, ["assembleRelease"], {
+            const buildProcess = spawn(gradleCommand, ["clean", "assembleRelease"], {
                 cwd: this.projectPath,
                 shell: true,
             });
